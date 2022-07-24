@@ -256,11 +256,17 @@ ins_8XY3(uint8_t x, uint8_t y)
  *  @x : register index
  *  @y : register index
  */
-static inline void
+/* static inline void */
+static __attribute__((noinline)) void
 ins_8XY4(uint8_t x, uint8_t y)
 {
-    regs.VF = (regs.V[x] + regs.V[y]) > 0xff;
-    regs.V[x] += regs.V[y];
+    uint8_t Vx, Vy; /* backup in case of register collision */
+
+    Vx = regs.V[x];
+    Vy = regs.V[y];
+
+    regs.VF = (Vx + Vy) > 0xff;
+    regs.V[x] = Vx + Vy;
 }
 
 /* 8XY5 - subtract Vy from Vx into Vx; VF = NOT borrow
@@ -270,8 +276,13 @@ ins_8XY4(uint8_t x, uint8_t y)
 static inline void
 ins_8XY5(uint8_t x, uint8_t y)
 {
-    regs.VF = regs.V[x] > regs.V[y];
-    regs.V[x] -= regs.V[y];
+    uint8_t Vx, Vy; /* backup in case of register collision */
+
+    Vx = regs.V[x];
+    Vy = regs.V[y];
+
+    regs.VF = Vx > Vy;
+    regs.V[x] = Vx - Vy;
 }
 
 /* 8XY6 - copy Vy into Vx and shift Vx right by 1; VF = popped bit
@@ -284,12 +295,17 @@ ins_8XY5(uint8_t x, uint8_t y)
 static inline void
 ins_8XY6(uint8_t x, uint8_t y)
 {
+    uint8_t Vy;     /* backup in case of register collision */
+
     /* use new implementation of shift operations */
     if (use_new_shift)
         y = x;
 
-    regs.VF = regs.V[y] & 0x01;
-    regs.V[x] = regs.V[y] >> 1;
+    Vy = regs.V[y];
+
+    /* in case Vx == Vf, carry overrides shifted value */
+    regs.V[x] = Vy >> 1;
+    regs.VF = Vy & 0x01;
 }
 
 /* 8XY7 - subtract Vx from Vy into Vx; VF = NOT borrow
@@ -299,8 +315,13 @@ ins_8XY6(uint8_t x, uint8_t y)
 static inline void
 ins_8XY7(uint8_t x, uint8_t y)
 {
-    regs.VF = regs.V[y] > regs.V[x];
-    regs.V[x] = regs.V[y] - regs.V[x];
+    uint8_t Vx, Vy; /* backup in case of register collision */
+
+    Vx = regs.V[x];
+    Vy = regs.V[y];
+
+    regs.VF = Vy > Vx;
+    regs.V[x] = Vy - Vx;
 }
 
 /* 8XYE - copy Vy into Vx and shift Vx left by 1; VF = popped bit
@@ -313,12 +334,17 @@ ins_8XY7(uint8_t x, uint8_t y)
 static inline void
 ins_8XYE(uint8_t x, uint8_t y)
 {
+    uint8_t Vy;     /* backup in case of register collision */
+
     /* use new implementation of shift operations */
     if (use_new_shift)
         y = x;
 
-    regs.VF = (regs.V[y] & 0x80) >> 7;
-    regs.V[x] = regs.V[y] << 1;
+    Vy = regs.V[y];
+
+    /* in case Vx == Vf, carry overrides shifted value */
+    regs.V[x] = Vy << 1;
+    regs.VF = (Vy & 0x80) >> 7;
 }
 
 /* 9XY0 - skip next inst if Vx does not equal Vy
