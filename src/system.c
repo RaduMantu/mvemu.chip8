@@ -376,7 +376,7 @@ ins_ANNN(uint16_t nnn)
 static inline void
 ins_BNNN(uint16_t nnn)
 {
-    regs.PC = nnn + regs.V[0];
+    regs.PC = (nnn + regs.V[0]) & 0x0fff;
 }
 
 /* CXKK - load a random value AND KK into Vx
@@ -460,9 +460,11 @@ ins_FX07(uint8_t x)
 static inline void
 ins_FX0A(uint8_t x)
 {
-    do {
-        regs.V[x] = update_keystate();
-    } while(regs.V[x] > 0x0f);
+    regs.V[x] = update_keystate();
+
+    /* repeat this instruction if no new key press registered */
+    if (regs.V[x] > 0x0f)
+        regs.PC -= 2;
 }
 
 /* FX15 - load DT from Vx
@@ -497,13 +499,15 @@ ins_FX18(uint8_t x)
     /* TODO */
 }
 
-/* FX1E - add Vx to I
+/* FX1E - add Vx to I; set VF if I overflows
  *  @x : register index
  */
 static inline void
 ins_FX1E(uint8_t x)
 {
     regs.I += regs.V[x];
+    regs.VF = regs.I > 0x0fff;
+    regs.I &= 0x0fff;
 }
 
 /* FX29 - load address of digit in Vx to I
@@ -512,7 +516,7 @@ ins_FX1E(uint8_t x)
 static inline void
 ins_FX29(uint8_t x)
 {
-    regs.I = font_offset + 5 * regs.V[x];
+    regs.I = font_offset + 5 * (regs.V[x] & 0x0f);
 }
 
 /* FX33 - store BCD representation of Vx at address I
@@ -521,13 +525,11 @@ ins_FX29(uint8_t x)
 static inline void
 ins_FX33(uint8_t x)
 {
-    size_t  wb;         /* written bytes */
-    uint8_t buf[4];     /* BCD buffer    */
+    uint8_t *_ram = (uint8_t *) ram;
 
-    wb = snprintf((char *) buf, sizeof(buf), "%hhu", regs.V[x]);
-    for (size_t i = 0; i < wb; i++)
-        buf[i] -= '0';
-    memmove(ram + regs.I, buf, wb);
+    _ram[regs.I + 0] = (regs.V[x] / 100) % 10;
+    _ram[regs.I + 1] = (regs.V[x] /  10) % 10;
+    _ram[regs.I + 2] = (regs.V[x] /   1) % 10;
 }
 
 /* FX55 - store V0-x at address I
@@ -884,7 +886,7 @@ sys_start(uint16_t freq, uint16_t pc)
     struct itimerspec interval = {  /* CPU timout interval */
         .it_value = {                   /* initial timer expiration  */
             .tv_sec  = 0,
-            .tv_nsec = 1e6,
+            .tv_nsec = 1e7,
         },
         .it_interval = {                /* subsequent timer interval */
             .tv_sec  = freq == 1,
