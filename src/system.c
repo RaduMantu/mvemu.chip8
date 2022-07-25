@@ -256,8 +256,7 @@ ins_8XY3(uint8_t x, uint8_t y)
  *  @x : register index
  *  @y : register index
  */
-/* static inline void */
-static __attribute__((noinline)) void
+static inline void
 ins_8XY4(uint8_t x, uint8_t y)
 {
     uint8_t Vx, Vy; /* backup in case of register collision */
@@ -396,7 +395,7 @@ ins_CXKK(uint8_t x, uint8_t kk)
 static inline void
 ins_DXYN(uint8_t x, uint8_t y, uint8_t n)
 {
-    regs.V[15] = display_sprite(regs.V[x], regs.V[y], ram + regs.I, n);
+    regs.VF = display_sprite(regs.V[x], regs.V[y], ram + regs.I, n);
 }
 
 /* EX9E - skip next ins if the Vx key is pressed
@@ -441,7 +440,7 @@ ins_FX07(uint8_t x)
 
     /* get DT counter value from remaining timespan */
     regs.V[x] = interval.it_value.tv_sec  * 60 +
-                interval.it_value.tv_nsec * 60 / 1e6;
+                interval.it_value.tv_nsec * 60 / 1e9;
 }
 
 /* FX0A - wait for key press; store its code into Vx
@@ -467,7 +466,7 @@ ins_FX15(uint8_t x)
     struct itimerspec interval = {  /* Delay Timer interval */
         .it_value = {                   /* initial timer expiration @60Hz */
             .tv_sec  = regs.V[x] / 60,
-            .tv_nsec = regs.V[x] % 60 * 1e6 / 60,
+            .tv_nsec = regs.V[x] % 60 * 1e9 / 60,
         },
         .it_interval = {                /* no subsequent expiration */
             .tv_sec  = 0,
