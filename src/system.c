@@ -26,7 +26,8 @@ static timer_t           delay_timerid;     /* delay timer                */
 static timer_t           sound_timerid;     /* sound timer                */
 static uint16_t          font_offset;       /* font sprites offset in RAM */
 static uint16_t          ref_interval;      /* screen refresh interval    */
-static uint8_t           use_new_shift;     /* use new shift operations   */
+static uint8_t           new_shift;         /* use new shift operations   */
+static uint8_t           lazy_render;       /* lazy_render                */
 static uint8_t           newest_key = 0xff; /* latest key still pressed   */
 static uint8_t           quit = 0;          /* breaks main system loop    */
 
@@ -124,6 +125,10 @@ static inline void
 ins_00E0(void)
 {
     clear_screen();
+
+    /* if employing lazy rendering, force a screen refresh right now */
+    if (lazy_render)
+        refresh_display();
 }
 
 /* 00EE - return from subroutine
@@ -297,7 +302,7 @@ ins_8XY6(uint8_t x, uint8_t y)
     uint8_t Vy;     /* backup in case of register collision */
 
     /* use new implementation of shift operations */
-    if (use_new_shift)
+    if (new_shift)
         y = x;
 
     Vy = regs.V[y];
@@ -336,7 +341,7 @@ ins_8XYE(uint8_t x, uint8_t y)
     uint8_t Vy;     /* backup in case of register collision */
 
     /* use new implementation of shift operations */
-    if (use_new_shift)
+    if (new_shift)
         y = x;
 
     Vy = regs.V[y];
@@ -396,6 +401,10 @@ static inline void
 ins_DXYN(uint8_t x, uint8_t y, uint8_t n)
 {
     regs.VF = display_sprite(regs.V[x], regs.V[y], ram + regs.I, n);
+
+    /* if employing lazy rendering, force a screen refresh right now */
+    if (lazy_render)
+        refresh_display();
 }
 
 /* EX9E - skip next ins if the Vx key is pressed
@@ -745,7 +754,7 @@ consume_ins(union sigval data)
     }
 
     /* every so often, force display update to avoid artifacts */
-    if (cycle++ % ref_interval == 0)
+    if (!lazy_render && (cycle++ % ref_interval == 0))
         refresh_display();
 }
 
@@ -765,19 +774,21 @@ sound_timeout(union sigval data)
  ******************************************************************************/
 
 /* init_system - allocates system RAM, maps ROM, initializes font sprites
- *  @rom_off  : ROM map offset into RAM [bytes]
- *  @font_off : font sprites offset into RAM [bytes]
- *  @rom_path : path to ROM file
- *  @ref_int  : screen refresh interval
+ *  @rom_off       : ROM map offset into RAM [bytes]
+ *  @_font_offset  : font sprites offset into RAM [bytes]
+ *  @rom_path      : path to ROM file
+ *  @_ref_interval : screen refresh interval
+ *  @_lazy_render  : lazy redering, rather than at specific intervals
  *
  *  @return : starting address of the system RAM
  */
 int32_t
 init_system(uint16_t rom_off,
-            uint16_t font_off,
+            uint16_t _font_offset,
             char     *rom_path,
-            uint16_t ref_int,
-            uint8_t  new_shift)
+            uint16_t _ref_interval,
+            uint8_t  _new_shift,
+            uint8_t  _lazy_render)
 {
     int32_t           fd;           /* ROM file descriptor */
     struct stat       statbuf;      /* fstat result buffer */
@@ -794,13 +805,16 @@ init_system(uint16_t rom_off,
     srandom(time(NULL));
 
     /* store font offset in global static storage */
-    font_offset = font_off;
+    font_offset = _font_offset;
 
     /* store refresh interval in global static storage */
-    ref_interval = ref_int;
+    ref_interval = _ref_interval;
 
     /* store shift instruction flavor in global static storage */
-    use_new_shift = new_shift;
+    new_shift = _new_shift;
+
+    /* store lazy rendering preference in global static storage */
+    lazy_render = _lazy_render;
 
     /* create CPU, sound, delay timers */
     ans = timer_create(CLOCK_MONOTONIC, &ev, &cpu_timerid);
@@ -840,7 +854,7 @@ init_system(uint16_t rom_off,
     GOTO(ans != statbuf.st_size, clean_ram, "unable to fully read ROM");
 
     /* copy font sprites into RAM */
-    memmove(ram + font_off, font_sprites, sizeof(font_sprites));
+    memmove(ram + font_offset, font_sprites, sizeof(font_sprites));
 
     /* everything went well; bypass emultated system RAM cleanup */
     ret = 0;

@@ -21,7 +21,7 @@ struct chip8_regs {
 #define VF V[15]
 
 /* public API */
-int32_t init_system(uint16_t, uint16_t, char *, uint16_t, uint8_t);
+int32_t init_system(uint16_t, uint16_t, char *, uint16_t, uint8_t, uint8_t);
 int32_t sys_start(uint16_t, uint16_t);
 
 #endif /* _SYSTEM_H */

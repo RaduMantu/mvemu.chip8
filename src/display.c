@@ -21,6 +21,7 @@ static uint8_t pixels[32 * 64] = { [0 ... 2047] = 0x00 };
 static uint32_t win_w;              /* scaled window width   */
 static uint32_t win_h;              /* scaled window height  */
 static uint16_t scale_f;            /* window scaling factor */
+static uint8_t  lazy_render;        /* lazy rendering       */
 
 /******************************************************************************
  ************************* PUBLIC API IMPLEMENTATION **************************
@@ -28,15 +29,17 @@ static uint16_t scale_f;            /* window scaling factor */
 
 /* init_display - initializes SDL2-based display
  *  @sf : window scaling factor
+ *  @lr : lazy render
  *
  *  @return : 0 if everything went well
  */
-int32_t init_display(uint16_t sf)
+int32_t init_display(uint16_t sf, uint8_t lr)
 {
     /* initialize local copies for window parameters */
-    win_w   = 64 * sf;
-    win_h   = 32 * sf;
-    scale_f = sf;
+    win_w       = 64 * sf;
+    win_h       = 32 * sf;
+    scale_f     = sf;
+    lazy_render = lr;
 
     /* create a window object */
     window = SDL_CreateWindow("CHIP8",

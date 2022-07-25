@@ -19,13 +19,13 @@ int32_t main(int32_t argc, char *argv[])
     DIE(!settings.ref_int,   "screen refresh interval 0 not allowed");
 
     /* initialize system RAM */
-    ans = init_system(settings.rom_off, settings.font_off,
-                      settings.rom_path, settings.ref_int,
-                      settings.new_shift);
+    ans = init_system(settings.rom_off,   settings.font_off,
+                      settings.rom_path,  settings.ref_int,
+                      settings.new_shift, settings.lazy_render);
     DIE(ans, "unable to initialize system");
 
     /* initialize display */
-    ans = init_display(settings.scale_f);
+    ans = init_display(settings.scale_f, settings.lazy_render);
     DIE(ans, "unable to initialize display");
 
     /* start the CPU */

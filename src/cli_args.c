@@ -15,8 +15,9 @@ static struct argp_option options[] = {
     { "font-offset",  'f', "UINT", 0, "Sprites offset in memory (default:0x50)" },
     { "scale-factor", 's', "UINT", 0, "Window scale factor (default:10)" },
     { "cpu-freq",     'c', "HZ",   0, "CPU frequency (default:200)" },
-    { "ref-int",      'i', "UINT", 0, "Screen refresh interval (default:1)" },
+    { "ref-int",      'i', "UINT", 0, "Screen refresh interval (default:20)" },
     { "new-shift",    'n', NULL,   0, "Use new SHL, SHR [1] (default:no)" },
+    { "lazy-render",  'l', NULL,   0, "Refresh screen on DXYN, 00E0 (default:no)" },
     { 0 }
 };
 
@@ -42,8 +43,9 @@ struct user_settings settings = {
     .font_off    = 0x50,
     .scale_f     = 10,
     .frequency   = 200,
-    .ref_int     = 0,
+    .ref_int     = 20,
     .new_shift   = 0,
+    .lazy_render = 0,
 };
 
 /* parse_opt - parses one argument and updates relevant structures
@@ -79,6 +81,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         /* use new implementation of shift operations */
         case 'n':
             settings.new_shift = 1;
+            break;
+        /* render screen only on DXYN or 00E0, not at regular intervals */
+        case 'l':
+            settings.lazy_render = 1;
             break;
         /* ROM file location (relative or absolute) */
         case ARGP_KEY_ARG:
