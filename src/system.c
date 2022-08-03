@@ -12,6 +12,7 @@
 
 #include "system.h"
 #include "display.h"
+#include "sound.h"
 #include "util.h"
 
 /******************************************************************************
@@ -496,7 +497,25 @@ ins_FX15(uint8_t x)
 static inline void
 ins_FX18(uint8_t x)
 {
-    /* TODO */
+    int32_t           ans;          /* answer               */
+    struct itimerspec interval = {  /* Sound Timer interval */
+        .it_value = {                   /* initial timer expiration @60Hz */
+            .tv_sec  = regs.V[x] / 60,
+            .tv_nsec = regs.V[x] % 60 * 1e9 / 60,
+        },
+        .it_interval = {                /* no subsequent expiration */
+            .tv_sec  = 0,
+            .tv_nsec = 0,
+        },
+    };
+
+    /* arm timer */
+    ans = timer_settime(sound_timerid, 0, &interval, NULL);
+    RET(ans, , "unable to arm timer (%s)", strerror(errno));
+
+    /* start sound playback */
+    ans = start_playback();
+    RET(ans, , "unable to start playback");
 }
 
 /* FX1E - add Vx to I; set VF if I overflows
@@ -626,7 +645,7 @@ consume_ins(union sigval data)
                     ins_00EE();
                     break;
                 default:
-                    RET(1, , "Unknown instruction %04hx", ins);
+                    RET(1, , "unknown instruction %04hx", ins);
             }
             break;
         case 0x1:   /* JP addr */
@@ -647,7 +666,7 @@ consume_ins(union sigval data)
                     ins_5XY0(x, y);
                     break;
                 default:
-                    RET(1, , "Unknown instruction %04hx", ins);
+                    RET(1, , "unknown instruction %04hx", ins);
             }
             break;
         case 0x6:   /* LD Vx, byte */
@@ -686,7 +705,7 @@ consume_ins(union sigval data)
                     ins_8XYE(x, y);
                     break;
                 default:
-                    RET(1, , "Unknown instruction %04hx", ins);
+                    RET(1, , "unknown instruction %04hx", ins);
             }
             break;
         case 0x9:
@@ -695,7 +714,7 @@ consume_ins(union sigval data)
                     ins_9XY0(x, y);
                     break;
                 default:
-                    RET(1, , "Unknown instruction %04hx", ins);
+                    RET(1, , "unknown instruction %04hx", ins);
             }
             break;
         case 0xa:   /* LD I, addr */
@@ -719,7 +738,7 @@ consume_ins(union sigval data)
                     ins_EXA1(x);
                     break;
                 default:
-                    RET(1, , "Unknown instruction %04hx", ins);
+                    RET(1, , "unknown instruction %04hx", ins);
             }
             break;
         case 0xf:
@@ -768,7 +787,10 @@ consume_ins(union sigval data)
 static void
 sound_timeout(union sigval data)
 {
+    int32_t ans;    /* answer */
 
+    ans = stop_playback();
+    RET(ans, , "unable to stop playback");
 }
 
 /******************************************************************************

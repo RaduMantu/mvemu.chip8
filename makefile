@@ -7,7 +7,7 @@ INC = include
 # compilation parameters
 CC      = gcc
 CFLAGS  = -I $(INC) -gdwarf-5 -O2 -Winline
-LDFLAGS = -lSDL2 -lrt -lportaudio
+LDFLAGS = -lSDL2 -lrt -lportaudio -lm
 
 # name of final binary
 FINBIN = mvemu.chip8

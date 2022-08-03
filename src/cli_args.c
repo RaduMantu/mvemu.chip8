@@ -18,6 +18,8 @@ static struct argp_option options[] = {
     { "ref-int",      'i', "UINT", 0, "Screen refresh interval (default:20)" },
     { "new-shift",    'n', NULL,   0, "Use new SHL, SHR [1] (default:no)" },
     { "lazy-render",  'l', NULL,   0, "Refresh screen on DXYN, 00E0 (default:no)" },
+    { "audio-dev",    'a', "INT",  0, "Audio device index [2] (default:unset)" },
+    { "tone-freq",    't', "HZ",   0, "Buzzer tone frequency (default:440Hz)" },
     { 0 }
 };
 
@@ -33,12 +35,18 @@ static char doc[] =
     "\v"
     "[1] Originally, 8XY6 and 8XYE shifted Vy and stored the result into \n"
     "    Vx. New interpretations of these instructions ignore Vy and instead \n"
-    "    perform the operation on Vx, directly.";
+    "    perform the operation on Vx, directly."
+    "\n"
+    "[2] If not specified, the emulator will dump a list of available devs.\n"
+    "    Look for \"pulseaudio\" or \"pipewire\" and pass one of their \n"
+    "    indices.";
 
 /* declaration of relevant structures */
 struct argp          argp = { options, parse_opt, args_doc, doc };
 struct user_settings settings = {
     .rom_path    = NULL,
+    .audio_idx   = -1,
+    .tone_freq   = 440.0f,
     .rom_off     = 0x200,
     .font_off    = 0x50,
     .scale_f     = 10,
@@ -85,6 +93,14 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
         /* render screen only on DXYN or 00E0, not at regular intervals */
         case 'l':
             settings.lazy_render = 1;
+            break;
+        /* audio device to use as portaudio backend */
+        case 'a':
+            sscanf(arg, "%d", &settings.audio_idx);
+            break;
+        /* buzzer tone frequency */
+        case 't':
+            sscanf(arg, "%f", &settings.tone_freq);
             break;
         /* ROM file location (relative or absolute) */
         case ARGP_KEY_ARG:
