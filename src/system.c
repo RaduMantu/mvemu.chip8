@@ -29,7 +29,6 @@ static uint16_t          font_offset;       /* font sprites offset in RAM */
 static uint16_t          ref_interval;      /* screen refresh interval    */
 static uint8_t           new_shift;         /* use new shift operations   */
 static uint8_t           lazy_render;       /* lazy_render                */
-static uint8_t           newest_key = 0xff; /* latest key still pressed   */
 static uint8_t           quit = 0;          /* breaks main system loop    */
 
 /* key state */
@@ -296,6 +295,7 @@ ins_8XY5(uint8_t x, uint8_t y)
  *
  * NOTE: may prove incompatible with CHIP-48 or SUPER-CHIP programs
  *       copying Vy into Vx is ignored in these architectures
+ *       see the `--new-shift | -n` option for compatibility
  */
 static inline void
 ins_8XY6(uint8_t x, uint8_t y)
@@ -335,6 +335,7 @@ ins_8XY7(uint8_t x, uint8_t y)
  *
  * NOTE: may prove incompatible with CHIP-48 or SUPER-CHIP programs
  *       copying Vy into Vx is ignored in these architectures
+ *       see the `--new-shift | -n` option for compatibility
  */
 static inline void
 ins_8XYE(uint8_t x, uint8_t y)

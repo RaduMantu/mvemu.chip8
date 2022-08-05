@@ -1,7 +1,7 @@
-#include <SDL2/SDL.h>       /* SDL */
-#include <SDL2/SDL_pixels.h>
-#include <stdint.h>         /* [u]int*_t */
-#include <alloca.h>         /* alloca */
+#include <SDL2/SDL.h>           /* SDL API       */
+#include <SDL2/SDL_pixels.h>    /* SDL pixel ops */
+#include <stdint.h>             /* [u]int*_t     */
+#include <alloca.h>             /* alloca        */
 
 #include "display.h"
 #include "util.h"

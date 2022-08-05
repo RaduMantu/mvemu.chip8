@@ -43,7 +43,7 @@ int32_t main(int32_t argc, char *argv[])
     goto cleanup_sound;
 
 invalid_audio_dev:
-        list_audio_devs();
+    list_audio_devs();
 
     /* cleanup procedure */
 cleanup_sound:

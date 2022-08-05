@@ -21,10 +21,15 @@ static PaStream *stream = NULL;     /* output audio stream                */
  ****************************** HELPER FUNCTIONS ******************************
  ******************************************************************************/
 
+/* init_portaudio - initializes the portaudio library
+ *  @return : 0 if everything went well
+ *
+ * NOTE: Pa_Initialize() prints out some output to stderr; might be jarring.
+ */
 static int32_t
 init_portaudio(void)
 {
-    int32_t     ans;    /* answer */
+    int32_t ans;    /* answer */
 
     /* initialize library */
     ans = Pa_Initialize();
