@@ -50,7 +50,7 @@ int32_t main(int32_t argc, char *argv[])
     GOTO(ans, cleanup_sound, "unable to initialize system");
 
     /* initialize display */
-    ans = init_display(settings.scale_f, settings.lazy_render);
+    ans = init_display(settings.scale_f);
     GOTO(ans, cleanup_sound, "unable to initialize display");
 
     /* start the CPU */

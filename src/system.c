@@ -51,7 +51,7 @@ static uint8_t           lazy_render;       /* lazy_render                */
 static uint8_t           quit = 0;          /* breaks main system loop    */
 
 /* key state */
-static uint8_t key_state[16] = { [0 ... 15] = 0 };
+static uint8_t key_state[16] = { [ 0 ... 15 ] = 0 };
 
 /* key map (chip8 key -> SDL keycode) *
  *        1 2 3 C  |  1 2 3 4         *
@@ -59,22 +59,22 @@ static uint8_t key_state[16] = { [0 ... 15] = 0 };
  *        7 8 9 E  |  A S D F         *
  *        A 0 B F  |  Z X C V         */
 static SDL_Scancode key_map[16] = {
-    [0x0] = SDL_SCANCODE_X,
-    [0x1] = SDL_SCANCODE_1,
-    [0x2] = SDL_SCANCODE_2,
-    [0x3] = SDL_SCANCODE_3,
-    [0x4] = SDL_SCANCODE_Q,
-    [0x5] = SDL_SCANCODE_W,
-    [0x6] = SDL_SCANCODE_E,
-    [0x7] = SDL_SCANCODE_A,
-    [0x8] = SDL_SCANCODE_S,
-    [0x9] = SDL_SCANCODE_D,
-    [0xa] = SDL_SCANCODE_Z,
-    [0xb] = SDL_SCANCODE_C,
-    [0xc] = SDL_SCANCODE_4,
-    [0xd] = SDL_SCANCODE_R,
-    [0xe] = SDL_SCANCODE_F,
-    [0xf] = SDL_SCANCODE_V,
+    [ 0x0 ] = SDL_SCANCODE_X,
+    [ 0x1 ] = SDL_SCANCODE_1,
+    [ 0x2 ] = SDL_SCANCODE_2,
+    [ 0x3 ] = SDL_SCANCODE_3,
+    [ 0x4 ] = SDL_SCANCODE_Q,
+    [ 0x5 ] = SDL_SCANCODE_W,
+    [ 0x6 ] = SDL_SCANCODE_E,
+    [ 0x7 ] = SDL_SCANCODE_A,
+    [ 0x8 ] = SDL_SCANCODE_S,
+    [ 0x9 ] = SDL_SCANCODE_D,
+    [ 0xa ] = SDL_SCANCODE_Z,
+    [ 0xb ] = SDL_SCANCODE_C,
+    [ 0xc ] = SDL_SCANCODE_4,
+    [ 0xd ] = SDL_SCANCODE_R,
+    [ 0xe ] = SDL_SCANCODE_F,
+    [ 0xf ] = SDL_SCANCODE_V,
 };
 
 /* font sprites; to be copied in emulated system RAM */
