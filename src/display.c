@@ -65,7 +65,8 @@ int32_t init_display(uint16_t sf)
          SDL_GetError());
 
     /* create an accelerated rendering context */
-    render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    render = SDL_CreateRenderer(window, -1,
+                SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
     GOTO(!render, clean_window, "unable to create rendering context (%s)",
          SDL_GetError());
 
