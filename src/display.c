@@ -25,21 +25,27 @@
 #include "display.h"
 #include "util.h"
 
+/* inactive pixel color */
+#define DARK_R      0x2a
+#define DARK_G      0x47
+#define DARK_B      0x33
+#define DARK_COLOR  DARK_R, DARK_G, DARK_B
+
+/* active pixel color */
+#define LIGHT_R     0x4b
+#define LIGHT_G     0x69
+#define LIGHT_B     0x33
+#define LIGHT_COLOR LIGHT_R, LIGHT_G, LIGHT_B
+
 /******************************************************************************
  **************************** INTERNAL STRUCTURES *****************************
  ******************************************************************************/
 
 static SDL_Window   *window;
 static SDL_Renderer *render;
-static SDL_Texture  *texture;
 
-/* we need to maintain a copy of the screen state to avoid querying the SDL *
- * texture; accessing the value is needed for flipping active pixels        */
+/* logical screen state */
 static uint8_t pixels[32 * 64] = { [0 ... 2047] = 0x00 };
-
-static uint32_t win_w;              /* scaled window width   */
-static uint32_t win_h;              /* scaled window height  */
-static uint16_t scale_f;            /* window scaling factor */
 
 /******************************************************************************
  ************************* PUBLIC API IMPLEMENTATION **************************
@@ -52,29 +58,23 @@ static uint16_t scale_f;            /* window scaling factor */
  */
 int32_t init_display(uint16_t sf)
 {
-    /* initialize local copies for window parameters */
-    win_w       = 64 * sf;
-    win_h       = 32 * sf;
-    scale_f     = sf;
+    int ans;    /* answer */
 
     /* create a window object */
     window = SDL_CreateWindow("CHIP8",
                 SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                win_w, win_h, SDL_WINDOW_SHOWN);
-    GOTO(!window, clean_params, "unable to create window (%s)",
+                64 * sf, 32 *  sf, SDL_WINDOW_SHOWN);
+    RET(!window, -1, "unable to create window (%s)",
          SDL_GetError());
 
     /* create an accelerated rendering context */
-    render = SDL_CreateRenderer(window, -1,
-                SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
+    render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     GOTO(!render, clean_window, "unable to create rendering context (%s)",
          SDL_GetError());
 
-    /* create a texture (to stretch to the window size) */
-    texture = SDL_CreateTexture(render, SDL_PIXELFORMAT_RGBA8888,
-                    SDL_TEXTUREACCESS_TARGET,
-                    64, 32);
-    GOTO(!texture, clean_renderer, "unable to create texture (%s)",
+    /* set renderer scale factor */
+    ans = SDL_RenderSetScale(render, sf, sf);
+    GOTO(ans, clean_renderer, "unable to set rendering scale factor (%s)",
          SDL_GetError());
 
     /* clear initial screen (first instruction should be 00E0 anyway) */
@@ -87,10 +87,6 @@ clean_renderer:
     SDL_DestroyRenderer(render);
 clean_window:
     SDL_DestroyWindow(window);
-clean_params:
-    win_w   = 0;
-    win_h   = 0;
-    scale_f = 0;
 
     return -1;
 }
@@ -99,13 +95,9 @@ clean_params:
  */
 void clear_screen(void)
 {
-    /* set rendering target to texture */
-    SDL_SetRenderTarget(render, texture);
     /* deactivate all pixels */
-    SDL_SetRenderDrawColor(render, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
+    SDL_SetRenderDrawColor(render, DARK_COLOR, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(render);
-    /* disassociate texture from renderer */
-    SDL_SetRenderTarget(render, NULL);
 
     /* clear logical representation */
     memset(pixels, 0x00, sizeof(pixels));
@@ -121,11 +113,6 @@ void clear_screen(void)
  */
 uint8_t display_sprite(uint8_t x, uint8_t y, uint8_t *src, uint8_t n)
 {
-    SDL_Point *points[] = {         /* [0] = deactivate; [1] = activate */
-        alloca(8 * n * sizeof(SDL_Point)),
-        alloca(8 * n * sizeof(SDL_Point)),
-    };
-    size_t    lens[] = { 0, 0 };    /* lengths of (de)activation lists */
     uint8_t   _x;                   /* individual x coordinate         */
     uint8_t   _y;                   /* individual y coordinate         */
     uint8_t   *pxp;                 /* pixel pointer                   */
@@ -144,26 +131,12 @@ uint8_t display_sprite(uint8_t x, uint8_t y, uint8_t *src, uint8_t n)
             npx   = (src[i] >> (7 - j)) & 0x01;
             *pxp ^= npx;
 
+            pixels[_y * 64 + _x] = *pxp;
+
             /* determine if collision occurred at least once */
             collision |= (!*pxp && npx);
-
-            /* add pixel to the (de)activation list */
-            points[*pxp][lens[*pxp]].x = _x;
-            points[*pxp][lens[*pxp]].y = _y;
-            lens[*pxp]++;
         }
     }
-
-    /* set rendering target to texture */
-    SDL_SetRenderTarget(render, texture);
-    /* deactivate pixels */
-    SDL_SetRenderDrawColor(render, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
-    SDL_RenderDrawPoints(render, points[0], lens[0]);
-    /* activate pixels */
-    SDL_SetRenderDrawColor(render, 0xff, 0xff, 0xff, SDL_ALPHA_OPAQUE);
-    SDL_RenderDrawPoints(render, points[1], lens[1]);
-    /* disassociate texture from renderer */
-    SDL_SetRenderTarget(render, NULL);
 
     return collision;
 }
@@ -174,7 +147,24 @@ uint8_t display_sprite(uint8_t x, uint8_t y, uint8_t *src, uint8_t n)
  */
 void refresh_display(void)
 {
-    SDL_RenderCopy(render, texture, NULL, NULL);
+    /* deactivate all pixels */
+    SDL_SetRenderDrawColor(render, DARK_COLOR, SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(render);
+
+    /* redraw each active pixel */
+    SDL_SetRenderDrawColor(render, LIGHT_COLOR, SDL_ALPHA_OPAQUE);
+    for (size_t i = 0; i < 32; i++) {
+        for (size_t j = 0; j < 64; j++) {
+            /* skip dark pixels */
+            if (!pixels[i * 64 + j])
+                continue;
+
+            /* draw active pixels */
+            SDL_RenderDrawPoint(render, j, i);
+        }
+    }
+
+    /* present buffer */
     SDL_RenderPresent(render);
 }
 
